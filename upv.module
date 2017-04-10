@@ -53,7 +53,7 @@ function upv_get_visited_pages_list() {
 /**
  * Implements hook_node_view().
  */
-function upv_node_view($node, $view_mode /* unused */, $langcode /* unused*/) {
+/*function upv_node_view($node, $view_mode, $langcode) {
   $curr_path = current_path();
 
   // Get the list of cached pages
@@ -87,7 +87,7 @@ function upv_node_view($node, $view_mode /* unused */, $langcode /* unused*/) {
     // Save the new list of visited pages
     cache_set($cache_id, $visited_pages);
   }
-}
+}*/
 
 /**
  * Validates the current page.
@@ -146,5 +146,46 @@ function upv_init() {
   if (!empty($_GET['clear'])) {
     $cache_id = _upv_get_cache_id();
     cache_set($cache_id, array());
+  }
+}
+
+/**
+ * Implements hook_boot().
+ */
+function upv_boot() {
+  // Do a full bootstrap
+  drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
+  $curr_path = current_path();
+
+  // Get the list of cached pages
+  $cache_id = _upv_get_cache_id();
+  if ($cached = cache_get($cache_id)) {
+
+    // Validates current page
+    if (_upv_is_current_page_valid()) {
+
+      // If this path was previously inserted, we remove it from that position.
+      if (FALSE !== $idx = array_search($curr_path, $cached->data)) {
+        unset($cached->data[$idx]);
+      }
+
+      // Merge it with the rest of the pages
+      $cached->data[] = $curr_path;
+
+      // Save the list of visited pages
+      cache_set($cache_id, array_unique($cached->data));
+    }
+  }
+  else {
+    // Set a new cache
+    $visited_pages = array();
+
+    // Validate current page
+    if (_upv_is_current_page_valid()) {
+      $visited_pages[] = $curr_path;
+    }
+
+    // Save the new list of visited pages
+    cache_set($cache_id, $visited_pages);
   }
 }
