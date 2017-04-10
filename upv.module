@@ -126,8 +126,14 @@ function _upv_is_current_page_valid() {
  * @return string
  */
 function _upv_get_cache_id() {
-  global $user;
-  return 'upv_' . $user->uid;
+  if (isset($_COOKIE['upv_visitor']) && !empty($_COOKIE['upv_visitor'])) {
+    return $_COOKIE['upv_visitor'];
+  }
+  else {
+    $visitor_id = uniqid();
+    setcookie('upv_visitor', $visitor_id);
+    return $visitor_id;
+  }
 }
 
 /**
