@@ -1,5 +1,5 @@
 <?php
-
+error_reporting(E_ALL);ini_set('display_errors', 1);
 /*
  * @file
  * Module definition file for upv.
@@ -11,14 +11,17 @@
  * @param array $page
  */
 function upv_page_alter(&$page) {
-  if (isset($page['footer'])) {
+  /*if (isset($page['footer'])) {
     $page['footer']['upv_visited_pages'] = array(
       '#theme' => 'item_list',
       '#items' => upv_get_visited_pages_list(),
       '#title' => t('Recently visited pages'),
-      '#type' => 'ol'
+      '#type' => 'ol',
+      '#attributes' => array(
+        'class' => array('visited-pages')
+      )
     );
-  }
+  }*/
 }
 
 /**
@@ -96,6 +99,7 @@ function upv_get_visited_pages_list() {
 function _upv_is_current_page_valid() {
 
   // Get active trail
+  drupal_get_breadcrumb();
   $active_trail = menu_get_active_trail();
   $active_trail_mlids = array();
   foreach ($active_trail as $trail) {
@@ -153,9 +157,33 @@ function upv_init() {
  * Implements hook_boot().
  */
 function upv_boot() {
-  // Do a full bootstrap
-  drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
-  $curr_path = current_path();
+  static $upv_boot_invoked;
+
+  // Skip, if invoked multiple times
+  if (!$upv_boot_invoked) {
+    $upv_boot_invoked = true;
+  }
+  else {
+    return;
+  }
+
+  if (arg(0) != 'node') return;
+
+  if (_upv_is_page_cached()) {
+    // Do a full bootstrap
+    drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
+  }
+}
+
+/**
+ * Processes visited pages
+ */
+function upv_process_visited_pages() {
+  if (drupal_is_cli()) {
+    return;
+  }
+
+  $curr_path = $_GET['q'];
 
   // Get the list of cached pages
   $cache_id = _upv_get_cache_id();
@@ -188,4 +216,57 @@ function upv_boot() {
     // Save the new list of visited pages
     cache_set($cache_id, $visited_pages);
   }
+}
+
+/**
+ * Implements hook_exit
+ *
+ * Show the list of visited pages in the footer.
+ */
+function upv_exit() {
+  static $upv_exit_invoked;
+
+  // Run only once
+  if (!$upv_exit_invoked) {
+    $upv_exit_invoked = true;
+  }
+  else {
+    return;
+  }
+
+  if (arg(0) != 'node') return;
+
+  // Process visited pages
+  upv_process_visited_pages();
+
+  // Get the list of visited pages
+  if ($visited_pages = upv_get_visited_pages_list()) {
+    // Theme the list
+    $pages_html_output = theme('item_list', array(
+      'items' => $visited_pages,
+      'title' => 'Recently visited pages',
+      'type' => 'ol'
+    ));
+
+    print '<div class="visited-pages">' . $pages_html_output . '</div>';
+  }
+}
+
+/**
+ * Checks if the page is cached.
+ */
+function _upv_is_page_cached() {
+  // Check for a cache mode force from settings.php.
+  if (variable_get('page_cache_without_database')) {
+    $cache_enabled = TRUE;
+  }
+  else {
+    drupal_bootstrap(DRUPAL_BOOTSTRAP_VARIABLES, FALSE);
+    $cache_enabled = variable_get('cache');
+  }
+
+  // Get the page from the cache.
+  $cache = drupal_page_get_cache();
+
+  return $cache_enabled && $cache && is_object($cache);
 }
