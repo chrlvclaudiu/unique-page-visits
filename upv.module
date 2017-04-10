@@ -59,7 +59,7 @@ function upv_node_view($node, $view_mode /* unused */, $langcode /* unused*/) {
   // Get the list of cached pages
   $cache_id = _upv_get_cache_id();
   if ($cached = cache_get($cache_id)) {
-    
+
     // Validates current page
     if (_upv_is_current_page_valid()) {
 
@@ -127,7 +127,7 @@ function _upv_is_current_page_valid() {
  */
 function _upv_get_cache_id() {
   global $user;
-  return md5($user->uid . '-UpV');
+  return 'upv_' . $user->uid;
 }
 
 /**
