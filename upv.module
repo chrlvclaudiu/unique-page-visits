@@ -1,0 +1,137 @@
+<?php
+
+/*
+ * @file
+ * Module definition file for upv.
+ */
+
+
+/**
+ * Implements hook_page_alter().
+ * @param array $page
+ */
+function upv_page_alter(&$page) {
+  if (isset($page['footer'])) {
+    $page['footer']['upv_visited_pages'] = array(
+      '#theme' => 'item_list',
+      '#items' => upv_get_visited_pages_list(),
+      '#title' => t('Recently visited pages'),
+      '#type' => 'ol'
+    );
+  }
+}
+
+/**
+ * Returns an unique list of visited pages ready to be rendered.
+ */
+function upv_get_visited_pages_list() {
+  $visited_pages = array();
+  $curr_path = current_path();
+
+  // Get the list of cached pages
+  $cache_id = _upv_get_cache_id();
+  if ($cached = cache_get($cache_id)) {
+    // Remove current page from the list
+    if (FALSE !== $idx = array_search($curr_path, $cached->data)) {
+      unset($cached->data[$idx]);
+    }
+
+    // Display pages as links with title
+    if (!empty($cached->data)) {
+      foreach (array_reverse($cached->data) as $path) {
+        $link = menu_link_get_preferred($path);
+        $visited_pages[] = array(
+          'data' => l($link['title'], $path)
+        );
+      }
+    }
+  }
+
+  return $visited_pages;
+}
+
+/**
+ * Implements hook_node_view().
+ */
+function upv_node_view($node, $view_mode /* unused */, $langcode /* unused*/) {
+  $curr_path = current_path();
+  // Get the list of cached pages
+  $cache_id = _upv_get_cache_id();
+  if ($cached = cache_get($cache_id)) {
+    // Validates current page
+    if (_upv_is_current_page_valid()) {
+      // If this path was previously inserted, we remove it from that position.
+      if (FALSE !== $idx = array_search($curr_path, $cached->data)) {
+        unset($cached->data[$idx]);
+      }
+      // Merge it with the rest of the pages
+      $cached->data[] = $curr_path;
+      // Save the list of visited pages
+      cache_set($cache_id, array_unique($cached->data));
+    }
+  }
+  else {
+    // Set a new cache
+    $visited_pages = array();
+
+    // Validate current page
+    if (_upv_is_current_page_valid()) {
+      $visited_pages[] = $curr_path;
+    }
+
+    // Save the new list of visited pages
+    cache_set($cache_id, $visited_pages);
+  }
+}
+
+/**
+ * Validates the current page.
+ * @return boolean
+ */
+function _upv_is_current_page_valid() {
+
+  // Get active trail
+  $active_trail = menu_get_active_trail();
+  $active_trail_mlids = array();
+  foreach ($active_trail as $trail) {
+    if (isset($trail['mlid'])) {
+      $active_trail_mlids[] = $trail['mlid'];
+    }
+  }
+
+  // Set some query conditions
+  $tree_parameters = array(
+    'only_active_trail' => TRUE,
+    'min_depth' => 2,
+    'active_trail' => $active_trail_mlids
+  );
+  // Build the menu tree
+  $tree_data = menu_build_tree('main-menu', $tree_parameters);
+
+  // Skip if this link is not the in breadcrumb and at least on level 2 or more
+  if (!$tree_data) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+/**
+ * Returns an unique cache id.
+ * @return string
+ */
+function _upv_get_cache_id() {
+  global $user;
+  return md5($user->uid . '-UpV');
+}
+
+/**
+ * Implements hook_init().
+ */
+function upv_init() {
+  // Clear the list of cached pages for the current user if flag is set
+  if (!empty($_GET['clear'])) {
+    $cache_id = _upv_get_cache_id();
+    cache_set($cache_id, array());
+  }
+}

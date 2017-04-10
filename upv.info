@@ -1,0 +1,6 @@
+name = "Unique Page Visits"
+description = "Displays a list of uniquely visited pages."
+core = 7.x
+package = DreamProduction
+
+dependencies[] = menu
