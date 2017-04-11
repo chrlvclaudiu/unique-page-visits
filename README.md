@@ -1,6 +1,6 @@
 Our problem
 ===========
-Display some dynamic content while the page is cached (i.e. serverd from cache)
+Display some dynamic content while the page is cached (i.e. served from cache)
 
 
 Solutions
