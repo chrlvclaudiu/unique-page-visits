@@ -11,7 +11,7 @@ error_reporting(E_ALL);ini_set('display_errors', 1);
  * @param array $page
  */
 function upv_page_alter(&$page) {
-  /*if (isset($page['footer'])) {
+  if (isset($page['footer'])) {
     $page['footer']['upv_visited_pages'] = array(
       '#theme' => 'item_list',
       '#items' => upv_get_visited_pages_list(),
@@ -21,7 +21,7 @@ function upv_page_alter(&$page) {
         'class' => array('visited-pages')
       )
     );
-  }*/
+  }
 }
 
 /**
@@ -56,7 +56,7 @@ function upv_get_visited_pages_list() {
 /**
  * Implements hook_node_view().
  */
-/*function upv_node_view($node, $view_mode, $langcode) {
+function upv_node_view($node, $view_mode, $langcode) {
   $curr_path = current_path();
 
   // Get the list of cached pages
@@ -90,7 +90,7 @@ function upv_get_visited_pages_list() {
     // Save the new list of visited pages
     cache_set($cache_id, $visited_pages);
   }
-}*/
+}
 
 /**
  * Validates the current page.
@@ -151,12 +151,17 @@ function upv_init() {
     $cache_id = _upv_get_cache_id();
     cache_set($cache_id, array());
   }
+
+  // For node pages, disable cache
+  if (arg(0) == 'node') {
+    drupal_page_is_cacheable(FALSE);
+  }
 }
 
 /**
  * Implements hook_boot().
  */
-function upv_boot() {
+/*function upv_boot() {return;
   static $upv_boot_invoked;
 
   // Skip, if invoked multiple times
@@ -173,12 +178,12 @@ function upv_boot() {
     // Do a full bootstrap
     drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
   }
-}
+}*/
 
 /**
  * Processes visited pages
  */
-function upv_process_visited_pages() {
+/*function upv_process_visited_pages() {
   if (drupal_is_cli()) {
     return;
   }
@@ -216,14 +221,14 @@ function upv_process_visited_pages() {
     // Save the new list of visited pages
     cache_set($cache_id, $visited_pages);
   }
-}
+}*/
 
 /**
  * Implements hook_exit
  *
  * Show the list of visited pages in the footer.
  */
-function upv_exit() {
+/*function upv_exit() {
   static $upv_exit_invoked;
 
   // Run only once
@@ -239,6 +244,7 @@ function upv_exit() {
   // Process visited pages
   upv_process_visited_pages();
 
+  $output = '';
   // Get the list of visited pages
   if ($visited_pages = upv_get_visited_pages_list()) {
     // Theme the list
@@ -248,9 +254,11 @@ function upv_exit() {
       'type' => 'ol'
     ));
 
-    print '<div class="visited-pages">' . $pages_html_output . '</div>';
+    $output = '<div class="visited-pages">' . $pages_html_output . '</div>';
   }
-}
+
+  print $output;
+}*/
 
 /**
  * Checks if the page is cached.
